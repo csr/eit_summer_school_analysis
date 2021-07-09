@@ -1,7 +1,9 @@
 from csv import reader
 
 
-NUMBER_OF_FAKE_TWEET_FLAGS = 3
+NUMBER_OF_FAKE_TWEET_FLAGS = 4
+FOLLOWERS_TWEETS_FILE_NAME = "Ricardo followers.csv"
+FOLLOWERS_ACCOUNTS_FILE_NAME = "followers - RicardoAnayaC.csv"
 
 
 def greaterThanFiveHashtagFlag(text):
@@ -10,6 +12,10 @@ def greaterThanFiveHashtagFlag(text):
 
 def greaterThanOneURL(text):
   return text.count("https://") > 1
+
+
+def noMentions(text):
+  return text.count("@") == 0
 
 
 def moreThan30PercentCharsAreCAPS(text):
@@ -21,7 +27,7 @@ def processCSVFile():
   users_tweets_count = {}
 
   # open file in read mode
-  with open('lopezobrador_.csv', 'r') as read_obj:
+  with open(FOLLOWERS_TWEETS_FILE_NAME, 'r') as read_obj:
       # pass the file object to reader() to get the reader object
       csv_reader = reader(read_obj)
       # Iterate over each row in the csv using reader object
@@ -37,7 +43,7 @@ def processCSVFile():
           else:
             users_tweets_count[username] += 1.0
 
-            if users_tweets_count[username] > 30:
+            if users_tweets_count[username] > 100:
               continue
 
           # The higher, the more likely the tweet is fake
@@ -50,6 +56,9 @@ def processCSVFile():
             fakeTweetFlags += 1.0
 
           if moreThan30PercentCharsAreCAPS(tweetText):
+            fakeTweetFlags += 1.0
+
+          if noMentions(tweetText):
             fakeTweetFlags += 1.0
 
           if not username in users_fake_tweet_flags_count:
@@ -73,17 +82,21 @@ def normalizeFakeTweetFlagsByNumberOfTweets(users_fake_tweet_flags_count, users_
 
 def buildFinalSuspiciousTweetsColumn(users_flags_dict):
   # open file in read mode
-  with open('followers - lopezobrador_.csv', 'r') as read_obj:
+  with open(FOLLOWERS_ACCOUNTS_FILE_NAME, 'r') as read_obj:
       # pass the file object to reader() to get the reader object
       csv_reader = reader(read_obj)
+      is_first_row = True
       # Iterate over each row in the csv using reader object
       for row in csv_reader:
+        if is_first_row:
+          is_first_row = False
+        else:
           # row variable is a list that represents a row in csv
           username = row[1]
           if username in users_flags_dict:
-            print(users_flags_dict[username])
+            print(str(users_flags_dict[username]))
           else:
-            print(0)
+            print(str(-1))
 
 def main():
     users_fake_tweet_flags_count, users_tweets_count = processCSVFile()
