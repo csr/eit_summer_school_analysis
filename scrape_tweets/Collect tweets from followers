@@ -1,0 +1,84 @@
+from searchtweets import *
+import json
+import csv
+
+search_args = load_credentials("REPLACE BY YOUR OWN PATH: twitter_keys.yaml",
+                                       yaml_key="search_tweets_v2",
+                                       env_overwrite=False)
+maximal_search = 500
+first = True
+
+
+def search(query, max_tweets):
+    query = gen_request_parameters(query, results_per_call=500, granularity="", user_fields="username", tweet_fields="author_id,id,created_at,text,in_reply_to_user_id,possibly_sensitive,public_metrics", start_time="2007-01-01")
+    result = collect_results(query,
+                         max_tweets=maximal_search,
+                         result_stream_args=search_args)
+    if(result):
+        return result[0]
+    else:
+        return 0
+
+def search_list(list_usernames, max_tweets):
+    global first
+    for i in list_usernames:
+        tweets = search("from:"+i, max_tweets)
+        if tweets==0:
+            continue
+        format_text(tweets, "text")
+        create_json_file(tweets)
+        if(first==True):
+           create_csv_file(tweets['data'], ["username", "author_id","id","created_at","text","in_reply_to_user_id","possibly_sensitive","public_metrics"], "REPLACE BY YOUR OWN PATH: file.csv", i)
+        else:
+            add_csv_file(tweets['data'], ["username", "author_id","id","created_at","text","in_reply_to_user_id","possibly_sensitive","public_metrics"], "REPLACE BY YOUR OWN PATH: file.csv", i)
+        first = False
+
+def display_element(nameElement):
+    for i in range(maximal_search):
+        print(tweets['data'][i][nameElement])
+
+def format_text(search_result, nameElement):
+    for i in range(len(search_result['data'])):
+        print(i)
+        search_result['data'][i][nameElement] = search_result['data'][i][nameElement].replace('\n'," ")
+        search_result['data'][i][nameElement] = search_result['data'][i][nameElement].replace(','," ")
+        search_result['data'][i][nameElement] = search_result['data'][i][nameElement].replace(";" ," ")
+    
+def create_json_file(search_result, nameFile="file.json"):
+    with open(nameFile, 'w', encoding='utf-16') as outfile:
+        json.dump(search_result, outfile)
+
+def create_csv_file(search_result, csv_columns, csv_file, username):
+    with open(csv_file, 'w', newline='', encoding='utf-16') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+        writer.writeheader()
+        for data in search_result:
+            data["username"] = username
+            writer.writerow(data)
+        csvfile.close()
+
+def add_csv_file(search_result, csv_columns, csv_file, username):
+    try:
+        with open(csv_file, 'a', newline='', encoding='utf-16') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+            for data in search_result:
+                data["username"] = username
+                writer.writerow(data)
+            csvfile.close()
+    except:
+        print("ERROR\n")
+        pass
+
+def csv_to_list(csvfile):
+    file = open(csvfile, "r", encoding="utf-8-sig")
+    csv_reader = csv.reader(file)
+    list_from_csv = []
+    for row in csv_reader:
+        list_from_csv.append(row)
+    list_from_csv = [item.replace("@","") for sublist in list_from_csv for item in sublist]
+    return list_from_csv
+
+listUsernames=csv_to_list("REPLACE BY YOUR OWN PATH: followers.csv")
+tweets = search_list(listUsernames, maximal_search)
+
+#json_response = json.dumps(tweets, indent=4, sort_keys=True)
